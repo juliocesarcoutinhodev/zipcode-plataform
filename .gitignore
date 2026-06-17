@@ -32,6 +32,9 @@ Thumbs.db
 # Angular
 .angular/
 
+# Docs
+doc/*.md
+
 # Node
 node_modules/
 dist/
