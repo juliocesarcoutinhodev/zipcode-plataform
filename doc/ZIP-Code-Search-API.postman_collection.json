@@ -1,0 +1,242 @@
+{
+  "info": {
+    "name": "ZIP Code Search API",
+    "description": "API para consulta de CEPs brasileiros via CNPJá\n\n## Fluxo de busca\n1. Valida formato (8 dígitos, com ou sem hífen)\n2. Verifica cache Redis\n3. Verifica banco PostgreSQL\n4. Consulta API externa CNPJá\n5. Retorna 404 se não encontrado\n\n## Variáveis de ambiente da collection\n- `{{base_url}}` — URL base da API (ex: http://localhost:8080)\n- `{{cep_valido}}` — CEP válido para testes (ex: 03195000)\n- `{{cep_com_hiphen}}` — CEP com hífen (ex: 03195-000)\n- `{{cep_invalido}}` — Formato inválido (ex: abc)\n- `{{cep_inexistente}}` — CEP inexistente (ex: 99999999)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "zipcode-plataform"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "cep_valido",
+      "value": "03195000",
+      "type": "string"
+    },
+    {
+      "key": "cep_com_hiphen",
+      "value": "03195-000",
+      "type": "string"
+    },
+    {
+      "key": "cep_invalido",
+      "value": "abc",
+      "type": "string"
+    },
+    {
+      "key": "cep_inexistente",
+      "value": "99999999",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Consultar CEP",
+      "description": "Endpoint principal para consulta de CEP. Aceita CEP com ou sem hífen. O CEP passado na URL é sobrescrito pela variável `cep_valido` ou você pode editá-lo diretamente.",
+      "variable": [
+        {
+          "key": "cep",
+          "value": "{{cep_valido}}",
+          "type": "string"
+        }
+      ],
+      "item": [
+        {
+          "name": "✅ Sucesso - CEP válido (8 dígitos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has expected fields\", () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('code');",
+                  "    pm.expect(json).to.have.property('street');",
+                  "    pm.expect(json).to.have.property('city');",
+                  "    pm.expect(json).to.have.property('state');",
+                  "    pm.expect(json.code).to.match(/^\\d{5}-\\d{3}$/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/zip/{{cep}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "zip", "{{cep}}"]
+            },
+            "description": "Consulta CEP com formato de 8 dígitos (sem hífen)."
+          },
+          "response": [
+            {
+              "name": "Resposta 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": "{\n  \"code\": \"03195-000\",\n  \"street\": \"Rua do Oratório\",\n  \"number\": null,\n  \"district\": \"Alto da Mooca\",\n  \"city\": \"São Paulo\",\n  \"state\": \"SP\",\n  \"municipality\": 3550308,\n  \"updated\": \"2026-06-01T23:59:59.999Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "✅ Sucesso - CEP com hífen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/zip/{{cep_com_hiphen}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "zip", "{{cep_com_hiphen}}"]
+            },
+            "description": "Consulta CEP com hífen (formato XXXXX-XXX). O sistema normaliza removendo o hífen."
+          }
+        },
+        {
+          "name": "❌ Erro 400 - CEP inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message in Portuguese\", () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('CEP inválido');",
+                  "    pm.expect(json.status).to.eql(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/zip/{{cep_invalido}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "zip", "{{cep_invalido}}"]
+            },
+            "description": "CEP com formato inválido (letras, dígitos insuficientes, etc). Retorna 400."
+          },
+          "response": [
+            {
+              "name": "Resposta 400",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": "{\n  \"status\": 400,\n  \"error\": \"CEP inválido\",\n  \"message\": \"O CEP informado possui formato inválido. Informe apenas os 8 dígitos numéricos.\",\n  \"timestamp\": \"2026-06-17T10:00:00Z\",\n  \"path\": \"/api/v1/zip/abc\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "❌ Erro 404 - CEP inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", () => {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message in Portuguese\", () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('CEP não encontrado');",
+                  "    pm.expect(json.status).to.eql(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/zip/{{cep_inexistente}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "zip", "{{cep_inexistente}}"]
+            },
+            "description": "CEP com formato válido mas que não existe na base de dados nem na API externa."
+          },
+          "response": [
+            {
+              "name": "Resposta 404",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": "{\n  \"status\": 404,\n  \"error\": \"CEP não encontrado\",\n  \"message\": \"O CEP informado não foi encontrado na base de dados.\",\n  \"timestamp\": \"2026-06-17T10:00:00Z\",\n  \"path\": \"/api/v1/zip/99999999\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "description": "Endpoint do Spring Actuator para verificar se a aplicação está saudável.",
+      "item": [
+        {
+          "name": "✅ Health - Aplicação ativa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Status is UP\", () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('UP');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "health"]
+            }
+          },
+          "response": [
+            {
+              "name": "Resposta 200",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": "{\n  \"status\": \"UP\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

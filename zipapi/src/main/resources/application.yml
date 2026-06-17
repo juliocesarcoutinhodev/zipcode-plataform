@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: zip-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/zipdb
+    username: ${DB_USER:zipuser}
+    password: ${DB_PASS:zippass}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+  tomcat:
+    threads:
+      virtual:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+cnpja:
+  base-url: https://api.cnpja.com
+  api-token: ${CNPJA_TOKEN}
+
+cache:
+  zip:
+    ttl-days: 7

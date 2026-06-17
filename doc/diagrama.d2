@@ -1,0 +1,101 @@
+ZIP Code Search API - Arquitetura
+
+Client: Cliente (HTTP) {
+  shape: cloud
+}
+
+Controller: ZipCodeController {
+  shape: rectangle
+  style.stroke: "#2563eb"
+  style.fill: "#eff6ff"
+  style.border-radius: 8
+}
+
+UseCase: FindZipCodeUseCaseImpl {
+  shape: rectangle
+  style.stroke: "#7c3aed"
+  style.fill: "#f5f3ff"
+  style.border-radius: 8
+}
+
+Cache: ZipCodeCacheAdapter {
+  shape: rectangle
+  style.stroke: "#dc2626"
+  style.fill: "#fef2f2"
+  style.border-radius: 8
+}
+
+DB: ZipCodePersistenceAdapter {
+  shape: rectangle
+  style.stroke: "#059669"
+  style.fill: "#ecfdf5"
+  style.border-radius: 8
+}
+
+External: CnpjaZipAdapter {
+  shape: rectangle
+  style.stroke: "#d97706"
+  style.fill: "#fffbeb"
+  style.border-radius: 8
+}
+
+Redis: Redis {
+  shape: cylinder
+  style.stroke: "#dc2626"
+  style.fill: "#fef2f2"
+}
+
+Postgres: PostgreSQL {
+  shape: cylinder
+  style.stroke: "#059669"
+  style.fill: "#ecfdf5"
+}
+
+CNPJa: API CNPJa {
+  shape: cloud
+  style.stroke: "#d97706"
+  style.fill: "#fffbeb"
+}
+
+Validador: Valida formato {
+  shape: diamond
+  style.stroke: "#7c3aed"
+  style.fill: "#f5f3ff"
+}
+
+Erro400: 400 CEP invalido {
+  shape: rectangle
+  style.stroke: "#dc2626"
+  style.fill: "#fef2f2"
+}
+
+Erro404: 404 CEP nao encontrado {
+  shape: rectangle
+  style.stroke: "#dc2626"
+  style.fill: "#fef2f2"
+}
+
+Client -> Controller: GET /api/v1/zip/CEP
+Controller -> Validador
+
+Validador -> Erro400: Invalido
+Validador -> UseCase: Valido (normaliza)
+
+UseCase -> Cache: 1. Verifica Redis
+Cache -> Redis
+Redis -> Cache: existe?
+Cache -> UseCase: sim + TTL
+
+UseCase -> DB: 2. Se nao no cache
+DB -> Postgres
+Postgres -> DB: existe?
+DB -> UseCase: sim + salva cache
+
+UseCase -> External: 3. Se nao no banco
+External -> CNPJa
+CNPJa -> External: existe?
+External -> UseCase: sim + persiste
+
+UseCase -> Erro404: Nao encontrado
+UseCase -> Controller: ZipCodeResponse
+Controller -> Client: JSON 200
