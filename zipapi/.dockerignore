@@ -1,0 +1,16 @@
+.idea/
+*.iml
+.vscode/
+target/
+*.class
+*.jar
+*.war
+.env
+.env.example
+.git/
+.gitignore
+../doc/
+.DS_Store
+Thumbs.db
+*.log
+src/test/
